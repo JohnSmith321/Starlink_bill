@@ -18,9 +18,10 @@ def _long_path(p: Path) -> Path:
     return p
 
 
-STARLINK_BASE = "https://www.starlink.com"
-BILLING_URL   = f"{STARLINK_BASE}/account/billing"
-LOGIN_URL     = "https://starlink.com/auth/login"  # query params are generated dynamically by Starlink
+STARLINK_BASE       = "https://www.starlink.com"
+BILLING_URL         = f"{STARLINK_BASE}/account/billing"
+SUBSCRIPTIONS_URL   = f"{STARLINK_BASE}/account/subscriptions"
+LOGIN_URL           = "https://starlink.com/auth/login"
 
 OUTPUT_DIR   = _long_path(Path("starlink_output"))
 INVOICES_DIR = OUTPUT_DIR / "invoices"
@@ -39,6 +40,21 @@ EXCEL_HEADERS = [
     "PDF File",
 ]
 
+REPORT_HEADERS = [
+    "Account",
+    "Account ID",
+    "Balance Due",
+    "Billing Cycle",
+    "Subscription Status",
+    "Service Plan Status",
+    "Ocean Mode",
+    "Device Status",
+    "Serial No",
+    "Uptime",
+    "Software Version",
+    "Wifi Status",
+]
+
 MONTH_NAMES = {i: calendar.month_name[i] for i in range(1, 13)}
 
 # ─────────────────────────────────────────────
@@ -47,7 +63,7 @@ MONTH_NAMES = {i: calendar.month_name[i] for i in range(1, 13)}
 # Auto-detects Chrome path by OS. Override by setting CHROME_PATH manually.
 # e.g. CHROME_PATH = "/usr/bin/google-chrome"
 
-import sys as _sys, os as _os
+import os as _os
 
 def _detect_chrome() -> str | None:
     if _sys.platform == "win32":

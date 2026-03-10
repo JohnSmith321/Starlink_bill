@@ -13,6 +13,7 @@ from config import (
     LOGIN_URL, SESSION_FILE, OTP_SELECTOR,
     CAPTCHA_SELECTORS, EMAIL_SELECTORS, PASSWORD_SELECTORS, SUBMIT_SELECTORS,
 )
+from utils import wait_for, wait_for_any
 
 console = Console()
 
@@ -116,6 +117,17 @@ def click_submit(page) -> bool:
     return False
 
 
+def _wait_for_next_step(page, timeout: int = 10000):
+    """After a login form submit, wait for the next step to appear:
+    password field, OTP field, CAPTCHA, or redirect away from login."""
+    combined = ", ".join(PASSWORD_SELECTORS + [OTP_SELECTOR] + CAPTCHA_SELECTORS[:3])
+    try:
+        page.wait_for_selector(combined, timeout=timeout, state="visible")
+    except Exception:
+        # Fallback: maybe we already left the login page
+        page.wait_for_timeout(1500)
+
+
 def fill_otp(page, otp_code: str) -> bool:
     """
     Fill OTP into either a single input or multiple single-digit boxes.
@@ -132,11 +144,9 @@ def fill_otp(page, otp_code: str) -> bool:
     digits = [c for c in otp_code if c.isdigit()]
 
     if len(visible) == 1:
-        # Single OTP field
         visible[0].click()
         visible[0].fill(otp_code.strip())
     else:
-        # Multiple single-digit boxes
         for i, inp in enumerate(visible):
             if i < len(digits):
                 inp.click()
@@ -182,14 +192,15 @@ def login_flow(page, _email: str = "", _password: str = ""):
     if not is_on_login_page(page):
         from scraper import safe_goto
         safe_goto(page, LOGIN_URL)
-        page.wait_for_timeout(2000)
+        # Wait for email field to appear
+        wait_for_any(page, EMAIL_SELECTORS, timeout=10000)
 
     # ── CAPTCHA check (pre-login) ─────────────────────────────────
     if detect_captcha(page):
         console.print("\n[bold red]  ⚠ CAPTCHA detected![/bold red]")
         console.print("  Please solve the CAPTCHA in the browser window.")
         Prompt.ask("  Press [Enter] after solving")
-        page.wait_for_timeout(1000)
+        page.wait_for_timeout(500)
 
     # ── Step 1: Email ─────────────────────────────────────────────
     console.print("\n  [bold]Step 1: Email[/bold]")
@@ -198,16 +209,17 @@ def login_flow(page, _email: str = "", _password: str = ""):
     else:
         console.print("  [yellow]Could not find email field — please fill manually.[/yellow]")
 
-    page.wait_for_timeout(500)
+    page.wait_for_timeout(300)
     click_submit(page)
-    page.wait_for_timeout(2500)
+    # Wait for password field, CAPTCHA, or OTP to appear
+    _wait_for_next_step(page, timeout=10000)
 
     # ── CAPTCHA check (after email) ───────────────────────────────
     if detect_captcha(page):
         console.print("\n[bold red]  ⚠ CAPTCHA detected![/bold red]")
         console.print("  Please solve the CAPTCHA in the browser window.")
         Prompt.ask("  Press [Enter] after solving")
-        page.wait_for_timeout(1000)
+        page.wait_for_timeout(500)
 
     # ── Step 2: Password ──────────────────────────────────────────
     console.print("\n  [bold]Step 2: Password[/bold]")
@@ -216,27 +228,27 @@ def login_flow(page, _email: str = "", _password: str = ""):
     else:
         console.print("  [yellow]Could not find password field — please fill manually.[/yellow]")
 
-    page.wait_for_timeout(500)
+    page.wait_for_timeout(300)
     click_submit(page)
-    page.wait_for_timeout(3000)
+    # Wait for OTP page, redirect, or CAPTCHA
+    _wait_for_next_step(page, timeout=10000)
 
     # ── CAPTCHA check (after password) ────────────────────────────
     if detect_captcha(page):
         console.print("\n[bold red]  ⚠ CAPTCHA detected![/bold red]")
         console.print("  Please solve the CAPTCHA in the browser window.")
         Prompt.ask("  Press [Enter] after solving")
-        page.wait_for_timeout(1000)
+        page.wait_for_timeout(500)
 
     # ── Step 3: OTP ───────────────────────────────────────────────
     console.print("\n  [bold]Step 3: OTP[/bold]")
 
-    # Wait up to 15s for OTP page to appear
     import time
     for _ in range(15):
         if detect_otp_page(page):
             break
         if not is_on_login_page(page):
-            break  # Already logged in (no OTP required)
+            break
         time.sleep(1)
 
     if detect_otp_page(page):
@@ -247,7 +259,11 @@ def login_flow(page, _email: str = "", _password: str = ""):
         else:
             console.print("  [yellow]Could not auto-fill OTP — please enter manually in browser.[/yellow]")
             Prompt.ask("  Press [Enter] after entering OTP")
-        page.wait_for_timeout(3000)
+        # Wait for redirect away from login
+        for _ in range(15):
+            if not is_on_login_page(page):
+                break
+            time.sleep(1)
     elif is_on_login_page(page):
         console.print("  [yellow]OTP not detected. Please complete login manually.[/yellow]")
         Prompt.ask("  Press [Enter] once you are on the account page")
@@ -257,7 +273,10 @@ def login_flow(page, _email: str = "", _password: str = ""):
     # ── Verify ────────────────────────────────────────────────────
     if is_on_login_page(page):
         console.print("[yellow]Still on login page — waiting...[/yellow]")
-        page.wait_for_timeout(3000)
+        for _ in range(10):
+            if not is_on_login_page(page):
+                break
+            import time; time.sleep(1)
         if is_on_login_page(page):
             console.print("[red]Still on login page. Please finish login manually.[/red]")
             Prompt.ask("Press [Enter] to continue")

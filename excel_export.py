@@ -4,7 +4,7 @@ from rich.console import Console
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-from config import EXCEL_HEADERS, EXCEL_FILE, ZIP_FILE, INVOICES_DIR
+from config import EXCEL_HEADERS, REPORT_HEADERS, EXCEL_FILE, ZIP_FILE, INVOICES_DIR
 
 console = Console()
 
@@ -104,4 +104,60 @@ def zip_pdfs(run_label: str = "export", pdf_dir=None):
             arcname = pdf.relative_to(pdf_dir.parent)
             zf.write(pdf, arcname)
     console.print(f"[green]✓ Zipped {len(pdf_files)} PDFs → {out_path}[/green]")
+    return out_path
+
+
+def build_report_excel(rows: list[dict], run_label: str = "report"):
+    """
+    Write account status report to a formatted Excel workbook.
+    One row per account with billing + subscription info.
+    """
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Account Report"
+
+    # ── Styles ──────────────────────────────────────────────────────
+    header_font  = Font(name="Arial", bold=True, color="FFFFFF", size=11)
+    header_fill  = PatternFill("solid", start_color="0D47A1")
+    data_font    = Font(name="Arial", size=10)
+    alt_fill     = PatternFill("solid", start_color="E3F2FD")
+    border_side  = Side(style="thin", color="B0BEC5")
+    cell_border  = Border(bottom=border_side)
+    center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    left_align   = Alignment(horizontal="left",   vertical="center", wrap_text=True)
+
+    col_widths = [24, 22, 16, 28, 60, 14, 12, 16, 20, 16, 20, 16]
+
+    # ── Header row ───────────────────────────────────────────────────
+    for col, (header, width) in enumerate(zip(REPORT_HEADERS, col_widths), start=1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font      = header_font
+        cell.fill      = header_fill
+        cell.alignment = center_align
+        ws.column_dimensions[get_column_letter(col)].width = width
+    ws.row_dimensions[1].height = 28
+
+    # ── Data rows ────────────────────────────────────────────────────
+    field_keys = [
+        "account", "account_id", "balance_due", "billing_cycle",
+        "subscription_status", "service_plan_status", "ocean_mode",
+        "device_status", "serial_no", "uptime", "software_version", "wifi_status",
+    ]
+    for r_idx, rec in enumerate(rows, start=2):
+        fill = alt_fill if r_idx % 2 == 0 else PatternFill()
+        for col, key in enumerate(field_keys, start=1):
+            cell = ws.cell(row=r_idx, column=col, value=rec.get(key, ""))
+            cell.font      = data_font
+            cell.border    = cell_border
+            cell.fill      = fill
+            cell.alignment = left_align if col in (5,) else center_align
+
+    # ── Footer ───────────────────────────────────────────────────────
+    footer_row = len(rows) + 3
+    ws.cell(row=footer_row, column=1, value=f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    ws.cell(row=footer_row, column=1).font = Font(name="Arial", italic=True, color="888888")
+
+    out_path = EXCEL_FILE.parent / f"starlink_report_{run_label}.xlsx"
+    wb.save(str(out_path))
+    console.print(f"[green]✓ Report saved → {out_path}[/green]")
     return out_path

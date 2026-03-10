@@ -12,6 +12,68 @@ def ensure_dirs():
     INVOICES_DIR.mkdir(exist_ok=True)
 
 
+# ─────────────────────────────────────────────
+#  Playwright wait helpers
+# ─────────────────────────────────────────────
+
+def wait_for(page, selector: str, timeout: int = 15000, state: str = "visible"):
+    """Wait for a single selector to appear. Returns element or None."""
+    try:
+        return page.wait_for_selector(selector, timeout=timeout, state=state)
+    except Exception:
+        return None
+
+
+def wait_for_any(page, selectors: list[str], timeout: int = 15000):
+    """Wait for any of several selectors. Returns first match or None."""
+    combined = ", ".join(selectors)
+    return wait_for(page, combined, timeout=timeout)
+
+
+def wait_for_grid(page, timeout: int = 15000):
+    """Wait until at least one MUI DataGrid is rendered with rows."""
+    return wait_for(page, ".MuiDataGrid-root", timeout=timeout)
+
+
+def wait_for_rows(page, timeout: int = 10000):
+    """Wait until DataGrid rows are rendered."""
+    return wait_for(page, ".MuiDataGrid-row", timeout=timeout)
+
+
+def wait_for_menu(page, timeout: int = 8000):
+    """Wait for MUI menu/popover to appear."""
+    return wait_for_any(page, [
+        '.MuiMenuItem-root',
+        '[role="menuitem"]',
+        '[role="menu"]',
+    ], timeout=timeout)
+
+
+def wait_for_navigation(page, timeout: int = 15000):
+    """Wait for page to reach a stable loaded state."""
+    try:
+        page.wait_for_load_state("domcontentloaded", timeout=timeout)
+    except Exception:
+        pass
+
+
+# ─────────────────────────────────────────────
+#  Date range helper
+# ─────────────────────────────────────────────
+
+def make_date_range(month_filter: date) -> tuple[date, date]:
+    """
+    Build payment-date filter range:
+      from day 5 of selected month  →  to day 6 of next month (inclusive).
+    """
+    start = date(month_filter.year, month_filter.month, 5)
+    if month_filter.month == 12:
+        end = date(month_filter.year + 1, 1, 6)
+    else:
+        end = date(month_filter.year, month_filter.month + 1, 6)
+    return start, end
+
+
 def parse_currency(amount_str: str) -> tuple[float, str]:
     """Return (amount_float, currency_code) from a string like '₱4,370.22'."""
     amount_str = amount_str.strip()
