@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+starlink_output/
+.session.json
+starlink_fetcher.zip
