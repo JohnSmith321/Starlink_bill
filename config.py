@@ -1,11 +1,28 @@
 import calendar
 from pathlib import Path
 
+import sys as _sys
+
+
+def _long_path(p: Path) -> Path:
+    """
+    On Windows, prepend \\\\?\\ to absolute paths to bypass the 260-char limit.
+    No-op on Linux/macOS.
+    """
+    if _sys.platform != "win32":
+        return p
+    p = p.resolve()
+    s = str(p)
+    if not s.startswith("\\\\?\\"):
+        return Path("\\\\?\\" + s)
+    return p
+
+
 STARLINK_BASE = "https://www.starlink.com"
 BILLING_URL   = f"{STARLINK_BASE}/account/billing"
 LOGIN_URL     = "https://starlink.com/auth/login"  # query params are generated dynamically by Starlink
 
-OUTPUT_DIR   = Path("starlink_output")
+OUTPUT_DIR   = _long_path(Path("starlink_output"))
 INVOICES_DIR = OUTPUT_DIR / "invoices"
 EXCEL_FILE   = OUTPUT_DIR / "starlink_invoices.xlsx"
 ZIP_FILE     = OUTPUT_DIR / "starlink_invoices.zip"
@@ -105,6 +122,3 @@ SUBMIT_SELECTORS = [
     'button:has-text("Log In")',
     '[data-testid*="submit"]',
 ]
-
-# How many scroll attempts with no new content before giving up
-MAX_NO_CHANGE_SCROLLS = 4

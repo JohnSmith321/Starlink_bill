@@ -39,42 +39,10 @@ from config import BILLING_URL, MONTH_NAMES, SESSION_FILE, CHROME_PATH, OUTPUT_D
 from auth import login_flow, load_session, save_session, is_on_login_page
 from scraper import get_account_list, switch_account, scrape_billing_rows, safe_goto
 from downloader import download_invoice_pdf
-from pdf_parser import extract_pdf_data
 from excel_export import build_excel, zip_pdfs
-from utils import ensure_dirs, parse_currency, ask_month_filter, fmt_date
+from utils import ensure_dirs, parse_currency, ask_month_filter, fmt_date, build_record
 
 console = Console()
-
-
-def build_record(row: dict, pdf_path, acc_id: str) -> dict:
-    """
-    Merge scraped billing row data with extracted PDF data.
-    PDF data takes priority; scraped data is the fallback.
-    """
-    if pdf_path and pdf_path.exists():
-        pdf = extract_pdf_data(pdf_path)
-        return {
-            "customer_account": pdf["customer_account"] or acc_id,
-            "invoice_number":   pdf["invoice_number"]   or row["invoice_number"],
-            "invoice_date":     fmt_date(pdf["invoice_date"] or row.get("invoice_date") or row["date"]),
-            "payment_date":     fmt_date(row["date"]),
-            "amount":           pdf["amount"]            or parse_currency(row["amount_str"])[0],
-            "currency":         pdf["currency"]          or parse_currency(row["amount_str"])[1],
-            "product":          pdf["product"],
-            "pdf_file":         pdf_path.name,
-        }
-    else:
-        amt, cur = parse_currency(row["amount_str"])
-        return {
-            "customer_account": acc_id,
-            "invoice_number":   row["invoice_number"],
-            "invoice_date":     fmt_date(row.get("invoice_date") or row["date"]),
-            "payment_date":     fmt_date(row["date"]),
-            "amount":           amt,
-            "currency":         cur,
-            "product":          "",
-            "pdf_file":         "(not downloaded)",
-        }
 
 
 def print_summary(all_records: list[dict]):

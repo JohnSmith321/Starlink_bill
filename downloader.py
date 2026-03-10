@@ -1,4 +1,3 @@
-import re
 from pathlib import Path
 from rich.console import Console
 from playwright.sync_api import TimeoutError as PWTimeout

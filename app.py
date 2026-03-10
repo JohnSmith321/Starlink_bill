@@ -4,7 +4,6 @@ Run with:  streamlit run app.py
 """
 
 import streamlit as st
-import threading
 import time
 from datetime import date, datetime
 from pathlib import Path
@@ -427,16 +426,14 @@ elif st.session_state.step == "fetching":
 
     status_area  = st.empty()
     progress_bar = st.progress(0)
-    log_area     = st.empty()
 
     try:
         from config import BILLING_URL, OUTPUT_DIR, MONTH_NAMES
         from auth import save_session
         from scraper import get_account_list, switch_account, scrape_billing_rows, safe_goto
         from downloader import download_invoice_pdf
-        from pdf_parser import extract_pdf_data
         from excel_export import build_excel, zip_pdfs
-        from utils import ensure_dirs, parse_currency, fmt_date
+        from utils import ensure_dirs, build_record
 
         ensure_dirs()
 
@@ -487,30 +484,7 @@ elif st.session_state.step == "fetching":
 
             for row in rows:
                 pdf_path = row.get("pdf_path")
-                if pdf_path and pdf_path.exists():
-                    pdf = extract_pdf_data(pdf_path)
-                    record = {
-                        "customer_account": pdf["customer_account"] or acc_id,
-                        "invoice_number":   pdf["invoice_number"]   or row["invoice_number"],
-                        "invoice_date":     fmt_date(pdf["invoice_date"] or row.get("invoice_date") or row["date"]),
-                        "payment_date":     fmt_date(row["date"]),
-                        "amount":           pdf["amount"]            or parse_currency(row["amount_str"])[0],
-                        "currency":         pdf["currency"]          or parse_currency(row["amount_str"])[1],
-                        "product":          pdf["product"],
-                        "pdf_file":         pdf_path.name,
-                    }
-                else:
-                    amt, cur = parse_currency(row["amount_str"])
-                    record = {
-                        "customer_account": acc_id,
-                        "invoice_number":   row["invoice_number"],
-                        "invoice_date":     fmt_date(row.get("invoice_date") or row["date"]),
-                        "payment_date":     fmt_date(row["date"]),
-                        "amount":           amt,
-                        "currency":         cur,
-                        "product":          "",
-                        "pdf_file":         "(not downloaded)",
-                    }
+                record = build_record(row, pdf_path, acc_id)
                 all_records.append(record)
 
             pct = 10 + int(80 * (idx + 1) / total_accs)

@@ -55,6 +55,40 @@ def fmt_date(d) -> str:
         return str(d)
 
 
+def build_record(row: dict, pdf_path, acc_id: str) -> dict:
+    """
+    Merge scraped billing row data with extracted PDF data.
+    PDF data takes priority; scraped data is the fallback.
+    Shared by both CLI (main.py) and Web UI (app.py).
+    """
+    from pdf_parser import extract_pdf_data
+
+    if pdf_path and pdf_path.exists():
+        pdf = extract_pdf_data(pdf_path)
+        return {
+            "customer_account": pdf["customer_account"] or acc_id,
+            "invoice_number":   pdf["invoice_number"]   or row["invoice_number"],
+            "invoice_date":     fmt_date(pdf["invoice_date"] or row.get("invoice_date") or row["date"]),
+            "payment_date":     fmt_date(row["date"]),
+            "amount":           pdf["amount"]            or parse_currency(row["amount_str"])[0],
+            "currency":         pdf["currency"]          or parse_currency(row["amount_str"])[1],
+            "product":          pdf["product"],
+            "pdf_file":         pdf_path.name,
+        }
+    else:
+        amt, cur = parse_currency(row["amount_str"])
+        return {
+            "customer_account": acc_id,
+            "invoice_number":   row["invoice_number"],
+            "invoice_date":     fmt_date(row.get("invoice_date") or row["date"]),
+            "payment_date":     fmt_date(row["date"]),
+            "amount":           amt,
+            "currency":         cur,
+            "product":          "",
+            "pdf_file":         "(not downloaded)",
+        }
+
+
 def ask_month_filter() -> date | None:
     """
     Prompt the user to choose between full history or a single month.

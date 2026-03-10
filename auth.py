@@ -10,7 +10,7 @@ import getpass
 from rich.console import Console
 from rich.prompt import Prompt
 from config import (
-    BILLING_URL, LOGIN_URL, SESSION_FILE, OTP_SELECTOR,
+    LOGIN_URL, SESSION_FILE, OTP_SELECTOR,
     CAPTCHA_SELECTORS, EMAIL_SELECTORS, PASSWORD_SELECTORS, SUBMIT_SELECTORS,
 )
 
