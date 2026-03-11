@@ -11,9 +11,6 @@ if sys.platform == "win32":
     import asyncio
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-import os
-import subprocess
-import tempfile
 import streamlit as st
 import time
 import pandas as pd
@@ -188,38 +185,9 @@ elif st.session_state.step == "launching":
         # Launch browser
         chrome_proc = None
 
-        if CHROME_PATH and os.path.exists(CHROME_PATH):
-            user_data_dir = os.path.join(tempfile.gettempdir(), "starlink_chrome_profile")
-            os.makedirs(user_data_dir, exist_ok=True)
-            cdp_port = 9222
-
-            log(f"Launching Chrome: {CHROME_PATH}")
-            progress.progress(20, text="Launching Chrome...")
-
-            chrome_proc = subprocess.Popen([
-                CHROME_PATH,
-                f"--remote-debugging-port={cdp_port}",
-                f"--user-data-dir={user_data_dir}",
-                "--start-maximized",
-                "--no-first-run",
-                "--no-default-browser-check",
-                "--disable-extensions",
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-            progress.progress(40, text="Waiting for Chrome to start...")
-            time.sleep(8)
-
-            try:
-                browser = pw.chromium.connect_over_cdp(f"http://localhost:{cdp_port}")
-                st.session_state.chrome_proc = chrome_proc
-                log("Connected to Chrome via CDP.")
-            except Exception as e:
-                chrome_proc.terminate()
-                log(f"CDP failed: {e} — falling back to Playwright Chromium.")
-                browser = pw.chromium.launch(headless=False, args=["--start-maximized"])
-        else:
-            log("Chrome not found — using Playwright Chromium.")
-            browser = pw.chromium.launch(headless=False, args=["--start-maximized"])
+        # Always use Playwright Chromium
+        log("Using Playwright Chromium.")
+        browser = pw.chromium.launch(headless=False, args=["--start-maximized"])
 
         st.session_state.browser = browser
         progress.progress(50, text="Setting up page...")
@@ -556,9 +524,9 @@ elif st.session_state.step == "fetching":
                 if idx > 0:
                     time.sleep(8)
 
-                def _dl(row_el, inv_no):
-                    return download_invoice_pdf(page, inv_no, acc_id or "main",
-                                                row_el=row_el, pdf_dir=pdf_dir)
+                def _dl(row_el, inv_no, _aid=acc_id, _pdir=pdf_dir):
+                    return download_invoice_pdf(page, inv_no, _aid or "main",
+                                               row_el=row_el, pdf_dir=_pdir)
 
                 rows = scrape_billing_rows(page, month_f, download_fn=_dl)
                 log(f"  Found {len(rows)} invoice(s) for {acc_name}.")
@@ -600,6 +568,7 @@ elif st.session_state.step == "fetching":
         log(f"ERROR: {e}")
         import traceback
         log(traceback.format_exc())
+        cleanup_browser()
 
 
 # ═════════════════════════════════════════════

@@ -6,6 +6,7 @@ can orchestrate the login flow step-by-step.
 """
 
 import json
+import time
 import getpass
 from rich.console import Console
 from rich.prompt import Prompt
@@ -43,7 +44,7 @@ def load_session() -> dict | None:
 
 def is_on_login_page(page) -> bool:
     url = page.url.lower()
-    return "/auth/login" in url or "sign-in" in url or "login" in url
+    return "/auth/login" in url or "/sign-in" in url
 
 
 # ─────────────────────────────────────────────
@@ -67,7 +68,6 @@ def wait_for_captcha_solved(page, timeout_s: int = 120):
     Poll every second until the CAPTCHA element disappears (user solved it)
     or timeout is reached. Returns True if solved, False if timed out.
     """
-    import time
     for _ in range(timeout_s):
         if not detect_captcha(page):
             return True
@@ -243,7 +243,6 @@ def login_flow(page, _email: str = "", _password: str = ""):
     # ── Step 3: OTP ───────────────────────────────────────────────
     console.print("\n  [bold]Step 3: OTP[/bold]")
 
-    import time
     for _ in range(15):
         if detect_otp_page(page):
             break
@@ -276,7 +275,7 @@ def login_flow(page, _email: str = "", _password: str = ""):
         for _ in range(10):
             if not is_on_login_page(page):
                 break
-            import time; time.sleep(1)
+            time.sleep(1)
         if is_on_login_page(page):
             console.print("[red]Still on login page. Please finish login manually.[/red]")
             Prompt.ask("Press [Enter] to continue")

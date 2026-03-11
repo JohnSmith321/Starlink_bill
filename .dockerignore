@@ -1,7 +1,11 @@
 venv/
 __pycache__/
 *.pyc
-starlink_output/
-.session.json
-*.zip
+*.pyo
 .git/
+.gitignore
+starlink_output/
+starlink_fetcher.zip
+*.zip
+.session.json
+README.md

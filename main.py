@@ -170,7 +170,6 @@ def main():
         if month_filter else "all"
     )
     run_label = f"{mode_slug}_{run_ts}"
-    pdf_dir   = OUTPUT_DIR / "invoices" / run_label / mode_slug
 
     all_records: list[dict] = []
 
@@ -262,6 +261,7 @@ def main():
 
         else:
             # ── Invoice fetch ─────────────────────────────────────────
+            pdf_dir = OUTPUT_DIR / "invoices" / run_label / mode_slug
             for idx, acc in enumerate(accounts):
                 acc_name = acc["name"]
                 acc_id   = acc["account_id"]
@@ -277,9 +277,9 @@ def main():
                 if idx > 0:
                     time.sleep(8)
 
-                def _dl(row_el, inv_no):
-                    return download_invoice_pdf(page, inv_no, acc_id or "main",
-                                                row_el=row_el, pdf_dir=pdf_dir)
+                def _dl(row_el, inv_no, _aid=acc_id, _pdir=pdf_dir):
+                    return download_invoice_pdf(page, inv_no, _aid or "main",
+                                               row_el=row_el, pdf_dir=_pdir)
 
                 rows = scrape_billing_rows(page, month_filter, download_fn=_dl)
                 console.print(f"  Found [green]{len(rows)}[/green] completed invoice(s).")

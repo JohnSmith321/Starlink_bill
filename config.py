@@ -23,7 +23,9 @@ BILLING_URL         = f"{STARLINK_BASE}/account/billing"
 SUBSCRIPTIONS_URL   = f"{STARLINK_BASE}/account/subscriptions"
 LOGIN_URL           = "https://starlink.com/auth/login"
 
-OUTPUT_DIR   = _long_path(Path("starlink_output"))
+# Resolve output dir relative to this file so it doesn't depend on CWD
+_BASE_DIR = Path(__file__).resolve().parent
+OUTPUT_DIR   = _long_path(_BASE_DIR / "starlink_output")
 INVOICES_DIR = OUTPUT_DIR / "invoices"
 EXCEL_FILE   = OUTPUT_DIR / "starlink_invoices.xlsx"
 ZIP_FILE     = OUTPUT_DIR / "starlink_invoices.zip"

@@ -70,12 +70,18 @@ def make_date_range(month_filter: date) -> tuple[date, date]:
 def parse_currency(amount_str: str) -> tuple[float, str]:
     """Return (amount_float, currency_code) from a string like '₱4,370.22'."""
     amount_str = amount_str.strip()
-    if amount_str.startswith("₱") or amount_str.upper().startswith("PHP"):
-        cleaned = re.sub(r"[₱PHPphp,\s]", "", amount_str)
-        return float(cleaned), "PHP"
-    if amount_str.startswith("$") or amount_str.upper().startswith("USD"):
-        cleaned = re.sub(r"[$USDusd,\s]", "", amount_str)
-        return float(cleaned), "USD"
+    if amount_str.startswith("₱") or re.match(r"(?i)^PHP", amount_str):
+        cleaned = re.sub(r"(?i)^PHP\s*|₱|,", "", amount_str).strip()
+        try:
+            return float(cleaned), "PHP"
+        except ValueError:
+            return 0.0, "PHP"
+    if amount_str.startswith("$") or re.match(r"(?i)^USD", amount_str):
+        cleaned = re.sub(r"(?i)^USD\s*|\$|,", "", amount_str).strip()
+        try:
+            return float(cleaned), "USD"
+        except ValueError:
+            return 0.0, "USD"
     # Generic fallback
     letters  = re.sub(r"[^A-Za-z]", "", amount_str).upper()
     numbers  = re.sub(r"[^0-9.\-]", "", amount_str)

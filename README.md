@@ -202,3 +202,15 @@ starlink_output/
 - **rich** — CLI formatting and prompts
 - **streamlit** — web UI
 - **pandas** — data display in web UI
+
+---
+
+## Changelog
+
+### 2026-03-11
+- **`auth.py`** — Moved `import time` to module top level (was inline inside functions). Tightened `is_on_login_page` to only match `/auth/login` and `/sign-in`, preventing false positives on any URL containing the word "login".
+- **`config.py`** — `OUTPUT_DIR` now resolves relative to the script file (`__file__`) rather than the current working directory, so the output folder is always predictable regardless of where the script is launched from.
+- **`utils.py`** — Fixed `parse_currency` regex to strip the full `PHP`/`USD` prefix string rather than individual characters, avoiding accidental stripping of letters from numeric values. Added `ValueError` guard on float conversion.
+- **`main.py`** — Fixed `_dl` closure capturing loop variable by binding `acc_id` and `pdf_dir` as default arguments. Moved `pdf_dir` definition inside the invoice-fetch branch (not created in report mode).
+- **`app.py`** — Removed unused imports (`os`, `subprocess`, `tempfile`). Fixed `_dl` closure (same as `main.py`). Added `cleanup_browser()` call in the fetch error handler to prevent orphaned browser processes on exception.
+- **`.dockerignore`** — Expanded to exclude `venv/`, `__pycache__/`, `.git/`, `starlink_output/`, `*.zip`, and `.session.json`, keeping the Docker build context lean.
