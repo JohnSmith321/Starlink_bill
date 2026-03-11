@@ -5,6 +5,4 @@ services:
       - "8501:8501"
     volumes:
       - ./starlink_output:/app/starlink_output
-    environment:
-      - DISPLAY=:99
     restart: unless-stopped

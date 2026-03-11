@@ -49,13 +49,6 @@ def wait_for_menu(page, timeout: int = 8000):
     ], timeout=timeout)
 
 
-def wait_for_navigation(page, timeout: int = 15000):
-    """Wait for page to reach a stable loaded state."""
-    try:
-        page.wait_for_load_state("domcontentloaded", timeout=timeout)
-    except Exception:
-        pass
-
 
 # ─────────────────────────────────────────────
 #  Date range helper

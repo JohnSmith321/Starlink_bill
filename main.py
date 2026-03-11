@@ -13,6 +13,7 @@ Requirements:
 """
 
 import sys
+import time
 
 try:
     from playwright.sync_api import sync_playwright
@@ -26,7 +27,7 @@ except ImportError as e:
     print("Then run:     playwright install chromium")
     sys.exit(1)
 
-from config import BILLING_URL, MONTH_NAMES, SESSION_FILE, CHROME_PATH, OUTPUT_DIR
+from config import BILLING_URL, SESSION_FILE, CHROME_PATH, OUTPUT_DIR
 from auth import login_flow, load_session, save_session, is_on_login_page
 from scraper import get_account_list, switch_account, scrape_billing_rows, safe_goto
 from downloader import download_invoice_pdf
@@ -102,13 +103,11 @@ def _launch_real_browser(pw):
     Launch the user's real Chrome via subprocess + connect over CDP.
     Falls back to Playwright Chromium if CHROME_PATH is not set or not found.
     """
-    import os, subprocess, time, tempfile
+    import os, subprocess, tempfile
 
-    path = CHROME_PATH if CHROME_PATH else None
-
-    if not path or not os.path.exists(path):
-        if path:
-            console.print(f"[red]CHROME_PATH not found: {path}[/red]")
+    if not CHROME_PATH or not os.path.exists(CHROME_PATH):
+        if CHROME_PATH:
+            console.print(f"[red]CHROME_PATH not found: {CHROME_PATH}[/red]")
             console.print("[yellow]Edit CHROME_PATH in config.py to point to your Chrome.[/yellow]")
         console.print("[yellow]⚠ Falling back to Playwright Chromium (may trigger bot detection).[/yellow]")
         return None, pw.chromium.launch(headless=False, args=["--start-maximized"])
@@ -117,10 +116,10 @@ def _launch_real_browser(pw):
     os.makedirs(user_data_dir, exist_ok=True)
 
     cdp_port = 9222
-    console.print(f"[green]✓ Launching real Chrome:[/green] [dim]{path}[/dim]")
+    console.print(f"[green]✓ Launching real Chrome:[/green] [dim]{CHROME_PATH}[/dim]")
 
     proc = subprocess.Popen([
-        path,
+        CHROME_PATH,
         f"--remote-debugging-port={cdp_port}",
         f"--user-data-dir={user_data_dir}",
         "--start-maximized",
@@ -164,8 +163,8 @@ def main():
         else:
             console.print("[cyan]Fetching all completed invoices (full history)...[/cyan]")
 
-    from datetime import datetime as _dt
-    run_ts    = _dt.now().strftime("%Y%m%d_%H%M%S")
+    from datetime import datetime
+    run_ts    = datetime.now().strftime("%Y%m%d_%H%M%S")
     mode_slug = (
         f"{month_filter.year}{month_filter.month:02d}"
         if month_filter else "all"
@@ -249,7 +248,7 @@ def main():
                 if acc_id:
                     switch_account(page, acc_id)
                 if idx > 0:
-                    import time; time.sleep(5)
+                    time.sleep(5)
 
                 row = collect_account_report(page, acc_name, acc_id)
                 report_rows.append(row)
@@ -276,7 +275,7 @@ def main():
                     switch_account(page, acc_id)
 
                 if idx > 0:
-                    import time; time.sleep(8)
+                    time.sleep(8)
 
                 def _dl(row_el, inv_no):
                     return download_invoice_pdf(page, inv_no, acc_id or "main",

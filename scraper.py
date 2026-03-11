@@ -1,6 +1,6 @@
 from datetime import date
 from rich.console import Console
-from config import BILLING_URL, MONTH_NAMES
+from config import BILLING_URL
 from utils import parse_row_date, wait_for, wait_for_grid, wait_for_rows, wait_for_menu, make_date_range
 
 console = Console()

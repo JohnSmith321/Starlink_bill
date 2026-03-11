@@ -1,6 +1,8 @@
+import time
 from pathlib import Path
 from rich.console import Console
 from playwright.sync_api import TimeoutError as PWTimeout
+from config import INVOICES_DIR
 
 console = Console()
 
@@ -12,7 +14,6 @@ def download_invoice_pdf(page, invoice_number: str, account_id: str,
     Saves into pdf_dir using the browser's suggested filename (as downloaded).
     """
     if pdf_dir is None:
-        from config import INVOICES_DIR
         pdf_dir = INVOICES_DIR
     pdf_dir.mkdir(parents=True, exist_ok=True)
 
@@ -30,8 +31,6 @@ def download_invoice_pdf(page, invoice_number: str, account_id: str,
     if click_target is None:
         console.print(f"  [yellow]No download cell found for {invoice_number}[/yellow]")
         return None
-
-    import time
 
     # Strategy 1: direct browser download — retry up to 3 times on 429
     for attempt in range(3):

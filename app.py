@@ -11,8 +11,12 @@ if sys.platform == "win32":
     import asyncio
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
+import os
+import subprocess
+import tempfile
 import streamlit as st
 import time
+import pandas as pd
 from datetime import date, datetime
 from pathlib import Path
 
@@ -182,21 +186,18 @@ elif st.session_state.step == "launching":
         progress.progress(10, text="Detecting Chrome...")
 
         # Launch browser
-        import os, subprocess, tempfile
-
-        chrome_path = CHROME_PATH
         chrome_proc = None
 
-        if chrome_path and os.path.exists(chrome_path):
+        if CHROME_PATH and os.path.exists(CHROME_PATH):
             user_data_dir = os.path.join(tempfile.gettempdir(), "starlink_chrome_profile")
             os.makedirs(user_data_dir, exist_ok=True)
             cdp_port = 9222
 
-            log(f"Launching Chrome: {chrome_path}")
+            log(f"Launching Chrome: {CHROME_PATH}")
             progress.progress(20, text="Launching Chrome...")
 
             chrome_proc = subprocess.Popen([
-                chrome_path,
+                CHROME_PATH,
                 f"--remote-debugging-port={cdp_port}",
                 f"--user-data-dir={user_data_dir}",
                 "--start-maximized",
@@ -614,7 +615,6 @@ elif st.session_state.step == "done":
     if run_mode == "report" and report_rows:
         st.subheader(f"Status Report: {len(report_rows)} account(s)")
 
-        import pandas as pd
         df = pd.DataFrame(report_rows)
         st.dataframe(df, width="stretch", hide_index=True)
 
@@ -632,7 +632,6 @@ elif st.session_state.step == "done":
     elif records:
         st.subheader(f"Results: {len(records)} invoice(s)")
 
-        import pandas as pd
         df = pd.DataFrame(records)
         display_cols = ["customer_account", "invoice_number", "invoice_date", "payment_date", "amount", "currency"]
         st.dataframe(df[display_cols], width="stretch", hide_index=True)
